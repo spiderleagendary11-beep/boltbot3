@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Search, Filter, Edit, Trash2, Download, MapPin, Clock } from 'lucide-react';
+import { FileText, Plus, Search, Filter, Edit, Trash2, Download, MapPin, Clock, Shield } from 'lucide-react';
 import { Report } from '../types';
 import { storage, STORAGE_KEYS } from '../utils/localStorage';
 import { useGPS } from '../hooks/useGPS';
+import { useAuth } from '../hooks/useAuth';
+import { shortenBlockchainId } from '../utils/blockchain';
 
 export function ReportPage() {
+  const { user } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
@@ -73,7 +76,8 @@ export function ReportPage() {
         type: formData.type,
         location,
         timestamp: new Date().toISOString(),
-        status: 'pending'
+        status: 'pending',
+        blockchainId: user?.blockchainId
       };
 
       saveReports([newReport, ...reports]);
@@ -362,6 +366,12 @@ export function ReportPage() {
                             <span className="flex items-center">
                               <MapPin className="h-4 w-4 mr-1" />
                               {report.location.latitude.toFixed(6)}, {report.location.longitude.toFixed(6)}
+                            </span>
+                          )}
+                          {report.blockchainId && (
+                            <span className="flex items-center">
+                              <Shield className="h-4 w-4 mr-1" />
+                              ID: {shortenBlockchainId(report.blockchainId)}
                             </span>
                           )}
                         </div>
