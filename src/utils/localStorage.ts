@@ -1,6 +1,7 @@
 export const STORAGE_KEYS = {
   USER: 'tourist_safety_user',
   AUTH_TOKEN: 'tourist_safety_auth',
+  BLOCKCHAIN_ID: 'tourist_safety_blockchain_id',
   CONTACTS: 'tourist_safety_contacts',
   TRIPS: 'tourist_safety_trips',
   REPORTS: 'tourist_safety_reports',

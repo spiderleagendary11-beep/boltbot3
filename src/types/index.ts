@@ -4,6 +4,7 @@ export interface User {
   email: string;
   phone: string;
   profileImage?: string;
+  blockchainId: string;
 }
 
 export interface EmergencyContact {
@@ -41,6 +42,7 @@ export interface Report {
   };
   timestamp: string;
   status: 'pending' | 'reviewed' | 'resolved';
+  blockchainId?: string;
 }
 
 export interface GPSLocation {

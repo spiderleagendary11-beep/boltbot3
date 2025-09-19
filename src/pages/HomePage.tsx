@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, AlertTriangle, FileText, Navigation2, Shield, Camera } from 'lucide-react';
+import { MapPin, AlertTriangle, FileText, Navigation2, Shield, Camera, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { shortenBlockchainId } from '../utils/blockchain';
 
 export function HomePage() {
   const { user } = useAuth();
@@ -65,6 +66,14 @@ export function HomePage() {
             <h1 className="text-4xl font-bold mb-4">
               Welcome back, {user?.username}!
             </h1>
+            {user?.blockchainId && (
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <Lock className="h-4 w-4 text-blue-300" />
+                <span className="text-sm text-blue-200 font-mono">
+                  Blockchain ID: {shortenBlockchainId(user.blockchainId)}
+                </span>
+              </div>
+            )}
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
               Your safety is our priority. Access all your safety tools and stay protected while traveling.
             </p>

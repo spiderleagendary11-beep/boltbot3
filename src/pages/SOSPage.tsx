@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Plus, Edit, Trash2, Phone, Star } from 'lucide-react';
 import { EmergencyContact } from '../types';
 import { storage, STORAGE_KEYS } from '../utils/localStorage';
+import { useAuth } from '../hooks/useAuth';
+import { formatBlockchainId } from '../utils/blockchain';
 
 export function SOSPage() {
+  const { user } = useAuth();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
@@ -117,12 +120,16 @@ export function SOSPage() {
     setSosActive(true);
     
     const priorityContact = contacts.find(contact => contact.isPriority);
-    const contactName = priorityContact ? priorityContact.name : 'Emergency Services';
+    const contactInfo = priorityContact 
+      ? `${priorityContact.name} (${priorityContact.phone})`
+      : 'Emergency Services';
+    
+    const blockchainId = user?.blockchainId || 'Not Available';
     
     // Simulate sending SOS alert
     setTimeout(() => {
       setSosActive(false);
-      alert(`🚨 SOS Alert sent to Police and ${contactName}\n\nTimestamp: ${new Date().toLocaleString()}\nLocation: Mock GPS coordinates\nStatus: Alert transmitted successfully`);
+      alert(`🚨 SOS Alert sent to Police and ${contactInfo}\n\nTimestamp: ${new Date().toLocaleString()}\nLocation: Mock GPS coordinates\nBlockchain ID: ${formatBlockchainId(blockchainId)}\nStatus: Alert transmitted successfully`);
     }, 2000);
   };
 

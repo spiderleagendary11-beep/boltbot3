@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Camera, User, Mail, Phone, Save, X } from 'lucide-react';
+import { Camera, User, Mail, Phone, Save, X, Shield, Copy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useCamera } from '../hooks/useCamera';
+import { formatBlockchainId, shortenBlockchainId } from '../utils/blockchain';
 
 export function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -36,6 +37,13 @@ export function ProfilePage() {
     }
   };
 
+  const copyBlockchainId = () => {
+    if (user?.blockchainId) {
+      navigator.clipboard.writeText(user.blockchainId);
+      alert('Blockchain ID copied to clipboard!');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,6 +59,33 @@ export function ProfilePage() {
               {/* Profile Information */}
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
+                
+                {/* Blockchain ID Display */}
+                {user?.blockchainId && (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Shield className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Blockchain ID</p>
+                          <p className="text-xs text-blue-700 font-mono">
+                            {formatBlockchainId(user.blockchainId)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={copyBlockchainId}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                        title="Copy Blockchain ID"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">
+                      This unique identifier is used for secure verification and cannot be changed.
+                    </p>
+                  </div>
+                )}
                 
                 <div className="space-y-6">
                   <div>
