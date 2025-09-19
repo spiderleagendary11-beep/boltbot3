@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { Navigation2, Play, Square, Trash2, MapPin, Clock, Target } from 'lucide-react';
+import { Navigation2, Play, Square, Trash2, MapPin, Clock, Target, AlertTriangle, X, Shield } from 'lucide-react';
 import { useGPS } from '../hooks/useGPS';
 import { GPSLocation } from '../types';
+import { DANGER_ZONES, getRiskLevelColor } from '../utils/geofencing';
+import { storage, STORAGE_KEYS } from '../utils/localStorage';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in react-leaflet
@@ -15,15 +17,28 @@ L.Icon.Default.mergeOptions({
 });
 
 export function TrackingPage() {
-  const { currentLocation, isTracking, error, trackingHistory, startTracking, stopTracking, clearHistory } = useGPS();
+  const { currentLocation, isTracking, error, trackingHistory, activeAlerts, startTracking, stopTracking, clearHistory, dismissAlert } = useGPS();
   const [mapCenter, setMapCenter] = useState<[number, number]>([40.7588, -73.9851]); // Default to NYC
   const [showHistory, setShowHistory] = useState(true);
+  const [showDangerZones, setShowDangerZones] = useState(true);
+  const [sleepMode, setSleepMode] = useState(() => storage.get<boolean>(STORAGE_KEYS.SLEEP_MODE) || false);
 
   useEffect(() => {
     if (currentLocation) {
       setMapCenter([currentLocation.latitude, currentLocation.longitude]);
     }
   }, [currentLocation]);
+
+  // Monitor sleep mode changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newSleepMode = storage.get<boolean>(STORAGE_KEYS.SLEEP_MODE) || false;
+      setSleepMode(newSleepMode);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const formatCoordinates = (lat: number, lng: number) => {
     return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -43,15 +58,93 @@ export function TrackingPage() {
     return 'text-red-600 bg-red-100';
   };
 
+  const getActiveAlertZones = () => {
+    return DANGER_ZONES.filter(zone => activeAlerts.includes(zone.id));
+  };
+
+  const createDangerZonePolygon = (coordinates: [number, number][]) => {
+    return coordinates.map(coord => [coord[0], coord[1]] as [number, number]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Geofencing Alert Modals */}
+      {!sleepMode && getActiveAlertZones().map((zone) => (
+        <div
+          key={zone.id}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border-l-4 border-red-500">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-full ${zone.riskLevel === 'critical' ? 'bg-red-100' : zone.riskLevel === 'high' ? 'bg-orange-100' : 'bg-yellow-100'}`}>
+                  <AlertTriangle className={`h-6 w-6 ${zone.riskLevel === 'critical' ? 'text-red-600' : zone.riskLevel === 'high' ? 'text-orange-600' : 'text-yellow-600'}`} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Geofencing Alert</h3>
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getRiskLevelColor(zone.riskLevel)}`}>
+                    {zone.riskLevel.toUpperCase()} RISK
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => dismissAlert(zone.id)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <h4 className="font-semibold text-gray-900 mb-2">{zone.name}</h4>
+              <p className="text-sm text-gray-600 mb-3">{zone.description}</p>
+              <div className={`p-3 rounded-lg border-l-4 ${zone.riskLevel === 'critical' ? 'bg-red-50 border-red-400' : zone.riskLevel === 'high' ? 'bg-orange-50 border-orange-400' : 'bg-yellow-50 border-yellow-400'}`}>
+                <p className="text-sm font-medium text-gray-800">{zone.alertMessage}</p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => dismissAlert(zone.id)}
+                className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
+              >
+                I Understand
+              </button>
+              <button
+                onClick={() => {
+                  dismissAlert(zone.id);
+                  // In a real app, this would trigger navigation away
+                  alert('Navigation feature would redirect you to a safer route.');
+                }}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+              >
+                Find Safe Route
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <Navigation2 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
           <h1 className="text-4xl font-bold text-gray-900 mb-4">GPS Tracking</h1>
-          <p className="text-xl text-gray-600">Real-time location monitoring and tracking history</p>
+          <p className="text-xl text-gray-600">Real-time location monitoring with AI-powered geofencing alerts</p>
         </div>
+
+        {/* Sleep Mode Warning */}
+        {sleepMode && (
+          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6 mb-8">
+            <div className="flex items-center space-x-3">
+              <Shield className="h-8 w-8 text-purple-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-purple-900">Sleep Mode Active</h3>
+                <p className="text-purple-700">GPS tracking and geofencing alerts are paused to conserve battery.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Controls Panel */}
@@ -98,6 +191,14 @@ export function TrackingPage() {
                     Status: {isTracking ? 'Active' : 'Inactive'}
                   </span>
                 </div>
+                {!sleepMode && (
+                  <div className="flex items-center space-x-3 mt-2">
+                    <div className={`w-3 h-3 rounded-full ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                    <span className="font-medium text-gray-900">
+                      Geofencing: {activeAlerts.length > 0 ? `${activeAlerts.length} Alert(s)` : 'Safe'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -144,12 +245,26 @@ export function TrackingPage() {
                   <p className="text-sm text-gray-600">Points Recorded</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-600">
-                    {isTracking ? 'LIVE' : 'STOPPED'}
+                  <p className={`text-2xl font-bold ${activeAlerts.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {sleepMode ? 'SLEEP' : isTracking ? 'LIVE' : 'STOPPED'}
                   </p>
                   <p className="text-sm text-gray-600">Status</p>
                 </div>
               </div>
+              
+              {!sleepMode && activeAlerts.length > 0 && (
+                <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm font-semibold text-red-800">Active Alerts</span>
+                  </div>
+                  {getActiveAlertZones().map(zone => (
+                    <div key={zone.id} className="text-xs text-red-700 mb-1">
+                      • {zone.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -158,15 +273,26 @@ export function TrackingPage() {
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
               <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="text-xl font-bold text-gray-900">Live Map</h3>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={showHistory}
-                    onChange={(e) => setShowHistory(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  />
-                  <span className="text-sm text-gray-700">Show tracking path</span>
-                </label>
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={showHistory}
+                      onChange={(e) => setShowHistory(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="text-sm text-gray-700">Show path</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={showDangerZones}
+                      onChange={(e) => setShowDangerZones(e.target.checked)}
+                      className="rounded border-gray-300 text-red-600 shadow-sm focus:border-red-300 focus:ring focus:ring-red-200 focus:ring-opacity-50"
+                    />
+                    <span className="text-sm text-gray-700">Show danger zones</span>
+                  </label>
+                </div>
               </div>
               <div className="h-96 lg:h-[600px]">
                 <MapContainer
@@ -194,6 +320,11 @@ export function TrackingPage() {
                           <p className="text-xs text-gray-600">
                             {formatTime(currentLocation.timestamp)}
                           </p>
+                          {activeAlerts.length > 0 && (
+                            <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                              <p className="text-xs font-semibold text-red-800">⚠️ In Danger Zone</p>
+                            </div>
+                          )}
                         </div>
                       </Popup>
                     </Marker>
@@ -209,6 +340,37 @@ export function TrackingPage() {
                       }}
                     />
                   )}
+                  
+                  {/* Render Danger Zones */}
+                  {showDangerZones && DANGER_ZONES.map((zone) => (
+                    <Polyline
+                      key={zone.id}
+                      positions={createDangerZonePolygon(zone.coordinates)}
+                      pathOptions={{
+                        color: zone.riskLevel === 'critical' ? '#dc2626' : zone.riskLevel === 'high' ? '#ea580c' : '#d97706',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: zone.riskLevel === 'critical' ? '#fecaca' : zone.riskLevel === 'high' ? '#fed7aa' : '#fde68a',
+                        fillOpacity: activeAlerts.includes(zone.id) ? 0.4 : 0.2,
+                        fill: true
+                      }}
+                    >
+                      <Popup>
+                        <div className="p-2">
+                          <h4 className="font-semibold text-gray-900">{zone.name}</h4>
+                          <p className="text-sm text-gray-600 mb-2">{zone.description}</p>
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getRiskLevelColor(zone.riskLevel)}`}>
+                            {zone.riskLevel.toUpperCase()} RISK
+                          </span>
+                          {activeAlerts.includes(zone.id) && (
+                            <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
+                              <p className="text-xs font-semibold text-red-800">⚠️ CURRENTLY INSIDE</p>
+                            </div>
+                          )}
+                        </div>
+                      </Popup>
+                    </Polyline>
+                  ))}
                 </MapContainer>
               </div>
             </div>

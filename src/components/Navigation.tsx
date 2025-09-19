@@ -31,6 +31,9 @@ export function Navigation() {
     const newSleepMode = !sleepMode;
     setSleepMode(newSleepMode);
     storage.set(STORAGE_KEYS.SLEEP_MODE, newSleepMode);
+    
+    // Trigger storage event for other components
+    window.dispatchEvent(new Event('storage'));
   };
 
   return (

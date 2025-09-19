@@ -8,6 +8,7 @@ export function useGPS() {
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trackingHistory, setTrackingHistory] = useState<GPSLocation[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<string[]>([]);
   const watchIdRef = useRef<number | null>(null);
 
   const sleepMode = storage.get<boolean>(STORAGE_KEYS.SLEEP_MODE) || false;
@@ -17,7 +18,23 @@ export function useGPS() {
     setTrackingHistory(savedHistory);
   }, []);
 
+  // Monitor sleep mode changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newSleepMode = storage.get<boolean>(STORAGE_KEYS.SLEEP_MODE) || false;
+      if (newSleepMode && activeAlerts.length > 0) {
+        // Clear alerts when sleep mode is activated
+        setActiveAlerts([]);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [activeAlerts.length]);
+
   const handleLocationUpdate = useCallback((position: GeolocationPosition) => {
+    const currentSleepMode = storage.get<boolean>(STORAGE_KEYS.SLEEP_MODE) || false;
+    
     const location: GPSLocation = {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
@@ -36,18 +53,22 @@ export function useGPS() {
     });
 
     // Check geofencing only if not in sleep mode
-    if (!sleepMode) {
+    if (!currentSleepMode) {
       const violations = checkGeofenceViolations(location);
+      const currentViolationIds = violations.map(zone => zone.id);
+      
+      // Update active alerts
+      setActiveAlerts(currentViolationIds);
+      
+      // Log violations for debugging
       if (violations.length > 0) {
-        violations.forEach(zone => {
-          // In a real app, this would show a proper modal/notification
-          if (window.confirm(zone.alertMessage + '\n\nWould you like to continue?')) {
-            console.log('User chose to proceed in danger zone:', zone.name);
-          }
-        });
+        console.log('Geofence violations detected:', violations.map(v => v.name));
       }
+    } else {
+      // Clear alerts in sleep mode
+      setActiveAlerts([]);
     }
-  }, [sleepMode]);
+  }, []);
 
   const handleLocationError = useCallback((error: GeolocationPositionError) => {
     let errorMessage = '';
@@ -73,7 +94,8 @@ export function useGPS() {
       return;
     }
 
-    if (sleepMode) {
+    const currentSleepMode = storage.get<boolean>(STORAGE_KEYS.SLEEP_MODE) || false;
+    if (currentSleepMode) {
       setError('GPS tracking is disabled in sleep mode.');
       return;
     }
@@ -92,7 +114,7 @@ export function useGPS() {
 
     setIsTracking(true);
     setError(null);
-  }, [handleLocationUpdate, handleLocationError, sleepMode]);
+  }, [handleLocationUpdate, handleLocationError]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
@@ -100,6 +122,7 @@ export function useGPS() {
       watchIdRef.current = null;
     }
     setIsTracking(false);
+    setActiveAlerts([]); // Clear alerts when stopping tracking
   }, []);
 
   const getCurrentPosition = useCallback(() => {
@@ -130,6 +153,9 @@ export function useGPS() {
     storage.remove(STORAGE_KEYS.TRACKING_HISTORY);
   }, []);
 
+  const dismissAlert = useCallback((zoneId: string) => {
+    setActiveAlerts(prev => prev.filter(id => id !== zoneId));
+  }, []);
   // Stop tracking when component unmounts
   useEffect(() => {
     return () => {
@@ -144,9 +170,11 @@ export function useGPS() {
     isTracking,
     error,
     trackingHistory,
+    activeAlerts,
     startTracking,
     stopTracking,
     getCurrentPosition,
-    clearHistory
+    clearHistory,
+    dismissAlert
   };
 }

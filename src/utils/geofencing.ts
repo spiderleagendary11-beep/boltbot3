@@ -1,45 +1,71 @@
 import { DangerZone, GPSLocation } from '../types';
 
-// Sample danger zones for demonstration
+// Enhanced danger zones with more realistic coordinates and detailed information
 export const DANGER_ZONES: DangerZone[] = [
   {
     id: '1',
-    name: 'High Crime Area - Downtown',
-    description: 'Area with elevated crime rates, especially at night',
+    name: 'High Crime District',
+    description: 'Area with elevated crime rates, especially after dark. Avoid walking alone.',
     riskLevel: 'high',
     coordinates: [
-      [40.7589, -73.9851],
+      [40.7589, -73.9851], // Times Square area
       [40.7589, -73.9831],
       [40.7569, -73.9831],
-      [40.7569, -73.9851],
+      [40.7569, -73.9851]
     ],
-    alertMessage: '⚠️ You are entering a high-crime area. Stay alert and consider alternative routes.'
+    alertMessage: '⚠️ WARNING: You are entering a high-crime area. Stay alert, avoid displaying valuables, and consider alternative routes.'
   },
   {
     id: '2',
-    name: 'Construction Zone',
-    description: 'Active construction site with restricted access',
+    name: 'Active Construction Zone',
+    description: 'Major construction site with heavy machinery and restricted pedestrian access',
     riskLevel: 'medium',
     coordinates: [
-      [40.7614, -73.9776],
+      [40.7614, -73.9776], // Near Central Park
       [40.7614, -73.9756],
       [40.7594, -73.9756],
-      [40.7594, -73.9776],
+      [40.7594, -73.9776]
     ],
-    alertMessage: '🚧 Construction zone ahead. Use caution and follow posted signs.'
+    alertMessage: '🚧 CAUTION: Active construction zone ahead. Use designated walkways and follow all posted safety signs.'
   },
   {
     id: '3',
-    name: 'Flood Risk Area',
-    description: 'Area prone to flooding during heavy rain',
+    name: 'Flood Risk Zone',
+    description: 'Low-lying area prone to flash flooding during heavy rainfall and storms',
     riskLevel: 'critical',
     coordinates: [
-      [40.7505, -73.9934],
+      [40.7505, -73.9934], // Lower Manhattan area
       [40.7505, -73.9914],
       [40.7485, -73.9914],
-      [40.7485, -73.9934],
+      [40.7485, -73.9934]
     ],
-    alertMessage: '🌊 CRITICAL: Flood risk area. Avoid during severe weather conditions.'
+    alertMessage: '🌊 CRITICAL ALERT: You are entering a flood-prone area. Evacuate immediately if weather conditions worsen.'
+  },
+  {
+    id: '4',
+    name: 'Industrial Hazard Zone',
+    description: 'Chemical processing facility with potential air quality risks',
+    riskLevel: 'high',
+    coordinates: [
+      [40.7450, -73.9900],
+      [40.7450, -73.9880],
+      [40.7430, -73.9880],
+      [40.7430, -73.9900]
+    ],
+    alertMessage: '☢️ HAZARD: Industrial zone with potential air quality risks. Minimize exposure time and avoid if you have respiratory conditions.'
+  },
+  {
+    id: '5',
+    name: 'Protest Area',
+    description: 'Area with ongoing civil demonstrations and increased police presence',
+    riskLevel: 'medium',
+    coordinates: [
+      [40.7580, -73.9855],
+      [40.7580, -73.9835],
+      [40.7560, -73.9835],
+      [40.7560, -73.9855]
+    ],
+    alertMessage: '📢 NOTICE: You are approaching an area with active demonstrations. Exercise caution and be aware of crowd dynamics.'
   }
 ];
 
